@@ -78,9 +78,25 @@ app.post("/api/telegram/webhook", async (req, res) => {
     const payloadMessage = message || req.body?.message;
     if (payloadMessage?.text || update_id) {
       const expense = parseExpenseFromMessage(payloadMessage?.text || "");
+      const replyToken = process.env.BOT_TOKEN;
       if (expense) {
         expenses.unshift(expense);
+        if (replyToken && payloadMessage?.chat?.id) {
+          await telegramRequest(replyToken, "sendMessage", {
+            chat_id: payloadMessage.chat.id,
+            text: `✅ Gasto registrado: ${expense.description} (${expense.amount.toFixed(
+              2
+            )})`,
+          });
+        }
         return res.json({ status: "ok", stored: true });
+      }
+      if (replyToken && payloadMessage?.chat?.id) {
+        await telegramRequest(replyToken, "sendMessage", {
+          chat_id: payloadMessage.chat.id,
+          text:
+            "Formato inválido. Use: valor descrição -> compartilhado | individual",
+        });
       }
       return res.json({ status: "ok", stored: false });
     }
