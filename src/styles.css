@@ -102,6 +102,10 @@ button:disabled {
   border-radius: 12px;
 }
 
+.list li span {
+  font-weight: 600;
+}
+
 .split {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

@@ -54,6 +54,8 @@ const parseExpenseFromMessage = (text = "") => {
   const amount = normalizeAmount(amountMatch[1]);
   if (!amount) return null;
 
+  const isIncome =
+    mainText.startsWith("+") || /receita|salario|salário/i.test(mainText);
   const description = mainText.replace(amountMatch[0], "").trim() || "Gasto via bot";
   let type = "shared";
   if (/individual|pessoal|solo/i.test(typeHint)) {
@@ -64,9 +66,10 @@ const parseExpenseFromMessage = (text = "") => {
 
   return {
     id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    description,
+    description: description.replace("+", "").trim() || "Gasto via bot",
     category: "Bot",
     amount,
+    entryType: isIncome ? "income" : "expense",
     type,
     date: new Date().toISOString().slice(0, 10),
     source: "telegram",
@@ -239,7 +242,7 @@ app.get("/api/expenses", requireAuth, (req, res) => {
 });
 
 app.post("/api/expenses", requireAuth, (req, res) => {
-  const { description, category, amount, type, date, owner } = req.body || {};
+  const { description, category, amount, type, date, owner, entryType } = req.body || {};
   const normalizedAmount = normalizeAmount(amount);
   if (!description || !normalizedAmount) {
     return res.status(400).json({ message: "Descrição e valor são obrigatórios." });
@@ -249,6 +252,7 @@ app.post("/api/expenses", requireAuth, (req, res) => {
     description,
     category: category || "Manual",
     amount: normalizedAmount,
+    entryType: entryType === "income" ? "income" : "expense",
     type: type || "shared",
     date: date || new Date().toISOString().slice(0, 10),
     owner: owner || "",

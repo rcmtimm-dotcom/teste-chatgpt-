@@ -44,6 +44,7 @@ const Gastos = () => {
     category: "Manual",
     type: "shared",
     owner: defaultUsers[0],
+    entryType: "expense",
   });
 
   const authHeader = useMemo(
@@ -110,6 +111,7 @@ const Gastos = () => {
         category: "Manual",
         type: "shared",
         owner: users[0],
+        entryType: "expense",
       });
       await fetchExpenses();
     } catch (error) {
@@ -155,7 +157,7 @@ const Gastos = () => {
 
   const spentByCategory = budgets.reduce((acc, budget) => {
     acc[budget.name] = items
-      .filter((item) => item.category === budget.name)
+      .filter((item) => item.entryType !== "income" && item.category === budget.name)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return acc;
   }, {});
@@ -163,6 +165,7 @@ const Gastos = () => {
   const monthlyTotals = useMemo(() => {
     const totals = {};
     items.forEach((item) => {
+      if (item.entryType === "income") return;
       const date = item.date ? new Date(item.date) : new Date();
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       totals[key] = (totals[key] || 0) + Number(item.amount || 0);
@@ -226,6 +229,18 @@ const Gastos = () => {
               />
             </label>
             <label>
+              Tipo de lançamento
+              <select
+                value={form.entryType}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, entryType: event.target.value }))
+                }
+              >
+                <option value="expense">Gasto</option>
+                <option value="income">Receita</option>
+              </select>
+            </label>
+            <label>
               Tipo
               <select
                 value={form.type}
@@ -235,7 +250,7 @@ const Gastos = () => {
                 <option value="individual">Individual</option>
               </select>
             </label>
-            {form.type === "individual" && (
+            {form.entryType === "expense" && form.type === "individual" && (
               <>
                 <label>
                   Responsável
@@ -347,7 +362,9 @@ const Gastos = () => {
                     {item.owner ? ` • ${item.owner}` : ""}
                   </span>
                 </div>
-                <span>R$ {Number(item.amount).toFixed(2)}</span>
+                <span>
+                  {item.entryType === "income" ? "+" : "-"} R$ {Number(item.amount).toFixed(2)}
+                </span>
               </li>
             ))}
           </ul>
