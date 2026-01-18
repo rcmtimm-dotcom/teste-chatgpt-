@@ -381,6 +381,119 @@ const initThemeToggle = () => {
   });
 };
 
+const initBotActions = () => {
+  const apiUrlInput = document.getElementById("botApiUrl");
+  const tokenInput = document.getElementById("botToken");
+  const chatInput = document.getElementById("botChatId");
+  const webhookInput = document.getElementById("botWebhookUrl");
+
+  const getConfig = () => ({
+    apiUrl: apiUrlInput?.value?.trim() || "http://localhost:3000",
+    token: tokenInput?.value?.trim() || "",
+    chatId: chatInput?.value?.trim() || "",
+    webhookUrl: webhookInput?.value?.trim() || "",
+  });
+
+  const request = async (path, options = {}) => {
+    const { apiUrl } = getConfig();
+    const response = await fetch(`${apiUrl}${path}`, {
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options,
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.message || "Erro na chamada do servidor.");
+    }
+    return payload;
+  };
+
+  const actionMap = {
+    "test-connection": async () => request("/api/telegram/health"),
+    webhook: async () => {
+      const { token, webhookUrl } = getConfig();
+      return request("/api/telegram/webhook", {
+        method: "POST",
+        body: JSON.stringify({ token, webhookUrl }),
+      });
+    },
+    diagnose: async () => {
+      const { token } = getConfig();
+      return request(`/api/telegram/diagnose?token=${encodeURIComponent(token)}`);
+    },
+    test: async () => {
+      const { token, chatId } = getConfig();
+      return request("/api/telegram/test-message", {
+        method: "POST",
+        body: JSON.stringify({ token, chatId, message: "Teste do Controle de Gastos" }),
+      });
+    },
+  };
+
+  document.querySelectorAll("[data-bot-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        const action = button.dataset.botAction;
+        if (!actionMap[action]) {
+          showToast("Ação inválida.");
+          return;
+        }
+        showToast("Processando...");
+        const result = await actionMap[action]();
+        showToast(result.message || "Ação concluída.");
+      } catch (error) {
+        showToast(error.message || "Falha ao executar a ação.");
+      }
+    });
+  });
+};
+
+const initUserActions = () => {
+  const userList = document.getElementById("userList");
+  if (!userList) return;
+  userList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-user-action]");
+    if (!button) return;
+    const userItem = button.closest(".user-item");
+    if (!userItem) return;
+    userItem.remove();
+    showToast("Usuário removido.");
+  });
+};
+
+const initUserInvite = () => {
+  const emailInput = document.getElementById("inviteEmail");
+  const inviteButton = document.getElementById("inviteUser");
+  const userList = document.getElementById("userList");
+  if (!emailInput || !inviteButton || !userList) return;
+
+  const createUserItem = (email) => {
+    const item = document.createElement("div");
+    item.className = "user-item";
+    item.innerHTML = `
+      <div>
+        <strong>${email.split("@")[0]}</strong>
+        <p class="muted">${email}</p>
+      </div>
+      <div class="user-actions">
+        <span class="pill">Usuário</span>
+        <button class="text-button danger" data-user-action="remove">Excluir</button>
+      </div>
+    `;
+    return item;
+  };
+
+  inviteButton.addEventListener("click", () => {
+    const email = emailInput.value.trim();
+    if (!email) {
+      showToast("Informe um e-mail válido.");
+      return;
+    }
+    userList.appendChild(createUserItem(email));
+    emailInput.value = "";
+    showToast("Convite enviado (simulado).");
+  });
+};
+
 const init = () => {
   renderGoals();
   renderTransactions();
@@ -388,6 +501,9 @@ const init = () => {
   initTabs();
   initViewNavigation();
   initThemeToggle();
+  initBotActions();
+  initUserActions();
+  initUserInvite();
   renderComparisonChart();
   renderBudget(elements.budgetChart);
   renderBudget(elements.budgetStandalone);
