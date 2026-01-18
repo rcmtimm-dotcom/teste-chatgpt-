@@ -378,8 +378,8 @@
           <h3>Gerenciar Usuários</h3>
           <p class="muted">Convide pessoas para acessar o sistema</p>
           <div class="inline-field">
-            <input type="email" placeholder="email@exemplo.com" />
-            <button class="primary">Convidar</button>
+            <input type="email" id="inviteEmail" placeholder="email@exemplo.com" />
+            <button class="primary" id="inviteUser">Convidar</button>
           </div>
           <div class="user-list" id="userList">
             <div class="user-item">
@@ -483,8 +483,20 @@
           <div class="info-card accent">
             <h3>Configuração do Bot</h3>
             <label>
+              URL do servidor local
+              <input type="text" id="botApiUrl" value="http://localhost:3000" />
+            </label>
+            <label>
               Token do Bot
-              <input type="text" value="7987750191:AAH8TbybvSpIvi_jPBS9LeipMX9kZ8Qcww" />
+              <input type="text" id="botToken" value="COLE_SEU_TOKEN_AQUI" />
+            </label>
+            <label>
+              Chat ID
+              <input type="text" id="botChatId" value="COLE_SEU_CHAT_ID" />
+            </label>
+            <label>
+              URL do Webhook
+              <input type="text" id="botWebhookUrl" value="https://seu-dominio.com/webhook" />
             </label>
             <p class="muted">Fale com @BotFather no Telegram e gere um token.</p>
             <div class="inline-actions">

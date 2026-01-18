@@ -718,6 +718,10 @@ input[type="number"] {
   min-width: 200px;
 }
 
+.inline-field button {
+  white-space: nowrap;
+}
+
 .user-list,
 .category-list {
   display: grid;
