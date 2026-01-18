@@ -36,6 +36,20 @@ const goalData = [
   { title: "Alerta Transporte", value: "R$ 400,00", status: "20% usado" },
 ];
 
+const categoryData = [
+  { name: "Alimentação", budget: 800, spent: 90 },
+  { name: "Transporte", budget: 400, spent: 40 },
+  { name: "Casa", budget: 600, spent: 120 },
+  { name: "Lazer", budget: 300, spent: 0 },
+  { name: "Saúde", budget: 200, spent: 0 },
+];
+
+const calendarEvents = [
+  { day: 15, label: "mercado", value: "R$ 90,00" },
+  { day: 15, label: "receita", value: "R$ 0,00" },
+  { day: 22, label: "farmácia", value: "R$ 40,00" },
+];
+
 const state = {
   transactions:
     JSON.parse(localStorage.getItem("transactions")) || initialTransactions,
@@ -63,6 +77,14 @@ const elements = {
   expenseForm: document.getElementById("expenseForm"),
   toast: document.getElementById("toast"),
   goalList: document.getElementById("goalList"),
+  comparisonChart: document.getElementById("comparisonChart"),
+  budgetChart: document.getElementById("budgetChart"),
+  budgetStandalone: document.getElementById("budgetStandalone"),
+  budgetProgress: document.getElementById("budgetProgress"),
+  goalProgress: document.getElementById("goalProgress"),
+  categoryList: document.getElementById("categoryList"),
+  calendarGrid: document.getElementById("calendarGrid"),
+  calendarStandalone: document.getElementById("calendarStandalone"),
 };
 
 const saveTransactions = () => {
@@ -77,6 +99,117 @@ const renderGoals = () => {
     card.innerHTML = `<strong>${goal.title}</strong><span>${goal.value}</span><small class="muted">${goal.status}</small>`;
     elements.goalList.appendChild(card);
   });
+};
+
+const renderCategoryList = () => {
+  if (!elements.categoryList) return;
+  elements.categoryList.innerHTML = "";
+  categoryData.forEach((category) => {
+    const item = document.createElement("div");
+    item.className = "category-item";
+    item.innerHTML = `
+      <div>
+        <strong>${category.name}</strong>
+        <p class="muted">Orçamento: ${currency.format(category.budget)}</p>
+      </div>
+      <span class="pill active">Ativa</span>
+    `;
+    elements.categoryList.appendChild(item);
+  });
+};
+
+const renderComparisonChart = () => {
+  if (!elements.comparisonChart) return;
+  elements.comparisonChart.innerHTML = "";
+  const months = [
+    { label: "ago/25", income: 0, expense: 0 },
+    { label: "set/25", income: 0, expense: 0 },
+    { label: "out/25", income: 0, expense: 0 },
+    { label: "nov/25", income: 0, expense: 0 },
+    { label: "dez/25", income: 0, expense: 90 },
+    { label: "jan/26", income: 0, expense: 0 },
+  ];
+  const maxValue = Math.max(...months.map((m) => Math.max(m.income, m.expense, 1)));
+  months.forEach((month) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "bar";
+    wrapper.innerHTML = `
+      <span class="muted">${month.label}</span>
+      <div class="bar-row">
+        <div class="bar-track">
+          <div class="bar-fill" style="width: ${(month.income / maxValue) * 100}%"></div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill expense" style="width: ${(month.expense / maxValue) * 100}%"></div>
+        </div>
+      </div>
+    `;
+    elements.comparisonChart.appendChild(wrapper);
+  });
+};
+
+const renderBudget = (target) => {
+  if (!target) return;
+  target.innerHTML = "";
+  categoryData.forEach((category) => {
+    const percent = Math.min((category.spent / category.budget) * 100, 100);
+    const item = document.createElement("div");
+    item.className = "bar";
+    item.innerHTML = `
+      <strong>${category.name}</strong>
+      <div class="bar-row">
+        <div class="bar-track">
+          <div class="bar-fill expense" style="width: ${percent}%"></div>
+        </div>
+        <span>${currency.format(category.spent)} / ${currency.format(category.budget)}</span>
+      </div>
+    `;
+    target.appendChild(item);
+  });
+};
+
+const renderGoalProgress = (target) => {
+  if (!target) return;
+  target.innerHTML = "";
+  categoryData.forEach((category) => {
+    const percent = Math.min((category.spent / category.budget) * 100, 100).toFixed(0);
+    const item = document.createElement("div");
+    item.className = "progress-item";
+    item.innerHTML = `
+      <strong>${category.name}</strong>
+      <p class="muted">${percent}% do orçamento usado</p>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: ${percent}%"></div>
+      </div>
+    `;
+    target.appendChild(item);
+  });
+};
+
+const renderCalendar = (target) => {
+  if (!target) return;
+  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  target.innerHTML = "";
+  days.forEach((day) => {
+    const header = document.createElement("div");
+    header.className = "calendar-day header";
+    header.textContent = day;
+    target.appendChild(header);
+  });
+  for (let day = 1; day <= 31; day += 1) {
+    const cell = document.createElement("div");
+    cell.className = "calendar-day";
+    cell.innerHTML = `<strong>${day}</strong>`;
+    calendarEvents
+      .filter((event) => event.day === day)
+      .forEach((event) => {
+        const eventEl = document.createElement("div");
+        eventEl.className = "event";
+        eventEl.textContent = `${event.label} ${event.value}`;
+        cell.appendChild(eventEl);
+      });
+    target.appendChild(cell);
+  }
 };
 
 const getFilteredTransactions = () => {
@@ -187,11 +320,50 @@ const exportCsv = () => {
 const initTabs = () => {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((el) => {
-        el.classList.remove("active");
-      });
+      const group = tab.closest(".tabs");
+      group.querySelectorAll(".tab").forEach((el) => el.classList.remove("active"));
       tab.classList.add("active");
-      showToast(`Aba ${tab.textContent} ativa`);
+      if (tab.dataset.report) {
+        document
+          .querySelectorAll(".report-panel")
+          .forEach((panel) => panel.classList.remove("active"));
+        const panel = document.querySelector(
+          `[data-report-panel=\"${tab.dataset.report}\"]`
+        );
+        if (panel) panel.classList.add("active");
+      }
+      if (tab.dataset.setting) {
+        document
+          .querySelectorAll(".settings-panel")
+          .forEach((panel) => panel.classList.remove("active"));
+        const panel = document.querySelector(
+          `[data-setting-panel=\"${tab.dataset.setting}\"]`
+        );
+        if (panel) panel.classList.add("active");
+      }
+    });
+  });
+};
+
+const initViewNavigation = () => {
+  const navLinks = document.querySelectorAll(".nav-link");
+  const views = document.querySelectorAll(".view");
+  const setActiveView = (viewName) => {
+    navLinks.forEach((link) =>
+      link.classList.toggle("active", link.dataset.view === viewName)
+    );
+    views.forEach((view) =>
+      view.classList.toggle("active", view.dataset.view === viewName)
+    );
+  };
+  navLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      setActiveView(link.dataset.view);
+    });
+  });
+  document.querySelectorAll("[data-view-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveView(button.dataset.viewTarget);
     });
   });
 };
@@ -214,7 +386,16 @@ const init = () => {
   renderTransactions();
   renderSummary();
   initTabs();
+  initViewNavigation();
   initThemeToggle();
+  renderComparisonChart();
+  renderBudget(elements.budgetChart);
+  renderBudget(elements.budgetStandalone);
+  renderGoalProgress(elements.goalProgress);
+  renderGoalProgress(elements.budgetProgress);
+  renderCategoryList();
+  renderCalendar(elements.calendarGrid);
+  renderCalendar(elements.calendarStandalone);
 
   document.getElementById("openModal").addEventListener("click", openModal);
   document.getElementById("closeModal").addEventListener("click", closeModal);
@@ -224,18 +405,16 @@ const init = () => {
   document
     .getElementById("exportCsv")
     .addEventListener("click", exportCsv);
-  document
-    .getElementById("openReports")
-    .addEventListener("click", () => showToast("Relatórios avançados"));
-  document
-    .getElementById("openBot")
-    .addEventListener("click", () => showToast("Configurar bot"));
-  document
-    .getElementById("toggleFilters")
-    .addEventListener("click", () => showToast("Filtros aplicados"));
-  document
-    .getElementById("addGoal")
-    .addEventListener("click", () => showToast("Nova meta criada"));
+  const optionalHandlers = [
+    { id: "toggleFilters", handler: () => showToast("Filtros aplicados") },
+    { id: "addGoal", handler: () => showToast("Nova meta criada") },
+  ];
+  optionalHandlers.forEach(({ id, handler }) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener("click", handler);
+    }
+  });
 
   elements.searchInput.addEventListener("input", (event) => {
     state.filters.search = event.target.value;
