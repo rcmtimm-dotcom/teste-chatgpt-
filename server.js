@@ -5,6 +5,74 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const expenses = [];
+const webhookEvents = [];
+
+const normalizeAmount = (rawAmount) => {
+  if (!rawAmount) return null;
+  const value = Number(String(rawAmount).replace(",", "."));
+  if (Number.isNaN(value)) return null;
+  return value;
+};
+
+const parseExpenseFromMessage = (text = "") => {
+  const cleaned = text.trim();
+  if (!cleaned) return null;
+
+  if (cleaned.startsWith("/")) return null;
+
+  const arrowParts = cleaned.split("->").map((part) => part.trim());
+  const mainText = arrowParts[0];
+  const typeHint = arrowParts[1] || "";
+
+  const amountMatch = mainText.match(/(\d+[.,]?\d*)/);
+  if (!amountMatch) return null;
+
+  const amount = normalizeAmount(amountMatch[1]);
+  if (!amount) return null;
+
+  const description = mainText.replace(amountMatch[0], "").trim() || "Gasto via bot";
+  let type = "shared";
+  if (/individual|pessoal|solo/i.test(typeHint)) {
+    type = "individual";
+  } else if (/compart|shared/i.test(typeHint)) {
+    type = "shared";
+  }
+
+  return {
+    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    description,
+    category: "Bot",
+    amount,
+    type,
+    date: new Date().toISOString().slice(0, 10),
+    source: "telegram",
+  };
+};
+
+const extractTelegramMessage = (body) => {
+  if (!body) return null;
+  return body.message || body.edited_message || body.channel_post || null;
+};
+
+const formatCurrency = (amount) =>
+  Number(amount).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+const recordWebhookEvent = (payloadMessage, stored) => {
+  webhookEvents.unshift({
+    at: new Date().toISOString(),
+    text: payloadMessage?.text || payloadMessage?.caption || "",
+    chatId: payloadMessage?.chat?.id || null,
+    stored,
+  });
+  if (webhookEvents.length > 20) {
+    webhookEvents.length = 20;
+  }
+};
+
 const telegramRequest = async (token, method, body) => {
   if (!token) {
     throw new Error("Token do bot não informado.");
@@ -27,12 +95,46 @@ app.get("/api/telegram/health", (req, res) => {
 
 app.post("/api/telegram/webhook", async (req, res) => {
   try {
-    const { token, webhookUrl } = req.body;
-    if (!webhookUrl) {
-      return res.status(400).json({ message: "URL do webhook não informada." });
+    const { token, webhookUrl, update_id } = req.body;
+    if (webhookUrl && token) {
+      await telegramRequest(token, "setWebhook", { url: webhookUrl });
+      return res.json({ message: "Webhook configurado com sucesso." });
     }
-    await telegramRequest(token, "setWebhook", { url: webhookUrl });
-    return res.json({ message: "Webhook configurado com sucesso." });
+
+    const payloadMessage = extractTelegramMessage(req.body);
+    const text = payloadMessage?.text || payloadMessage?.caption || "";
+    if (text || update_id) {
+      console.log("WEBHOOK_HIT");
+      const expense = parseExpenseFromMessage(text);
+      const replyToken = process.env.BOT_TOKEN;
+      if (expense) {
+        expenses.unshift(expense);
+        recordWebhookEvent(payloadMessage, true);
+        console.log("PARSED_OK");
+        console.log("DB_WRITE_OK");
+        if (replyToken && payloadMessage?.chat?.id) {
+          await telegramRequest(replyToken, "sendMessage", {
+            chat_id: payloadMessage.chat.id,
+            text: `✅ Gasto registrado: ${expense.description} ${formatCurrency(
+              expense.amount
+            )}`,
+          });
+        }
+        return res.json({ status: "ok", stored: true });
+      }
+      recordWebhookEvent(payloadMessage, false);
+      console.log("PARSED_FAIL");
+      if (replyToken && payloadMessage?.chat?.id) {
+        await telegramRequest(replyToken, "sendMessage", {
+          chat_id: payloadMessage.chat.id,
+          text:
+            "Formato inválido. Use: valor descrição -> compartilhado | individual",
+        });
+      }
+      return res.json({ status: "ok", stored: false });
+    }
+
+    return res.status(400).json({ message: "Payload inválido." });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -62,6 +164,41 @@ app.post("/api/telegram/test-message", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
+});
+
+app.get("/api/telegram/updates", (req, res) => {
+  res.json({ events: webhookEvents });
+});
+
+app.get("/debug/last-expenses", (req, res) => {
+  const debugKey = process.env.DEBUG_KEY;
+  if (!debugKey || req.query.key !== debugKey) {
+    return res.status(403).json({ message: "Acesso negado." });
+  }
+  return res.json({ expenses: expenses.slice(0, 5) });
+});
+
+app.get("/api/expenses", (req, res) => {
+  res.json({ expenses });
+});
+
+app.post("/api/expenses", (req, res) => {
+  const { description, category, amount, type, date } = req.body || {};
+  const normalizedAmount = normalizeAmount(amount);
+  if (!description || !normalizedAmount) {
+    return res.status(400).json({ message: "Descrição e valor são obrigatórios." });
+  }
+  const expense = {
+    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    description,
+    category: category || "Manual",
+    amount: normalizedAmount,
+    type: type || "shared",
+    date: date || new Date().toISOString().slice(0, 10),
+    source: "manual",
+  };
+  expenses.unshift(expense);
+  return res.json({ message: "Gasto registrado.", expense });
 });
 
 const port = process.env.PORT || 3000;
