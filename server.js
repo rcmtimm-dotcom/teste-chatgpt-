@@ -18,6 +18,8 @@ const parseExpenseFromMessage = (text = "") => {
   const cleaned = text.trim();
   if (!cleaned) return null;
 
+  if (cleaned.startsWith("/")) return null;
+
   const arrowParts = cleaned.split("->").map((part) => part.trim());
   const mainText = arrowParts[0];
   const typeHint = arrowParts[1] || "";
@@ -47,6 +49,17 @@ const parseExpenseFromMessage = (text = "") => {
   };
 };
 
+const extractTelegramMessage = (body) => {
+  if (!body) return null;
+  return body.message || body.edited_message || body.channel_post || null;
+};
+
+const formatCurrency = (amount) =>
+  Number(amount).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
 const telegramRequest = async (token, method, body) => {
   if (!token) {
     throw new Error("Token do bot não informado.");
@@ -69,24 +82,25 @@ app.get("/api/telegram/health", (req, res) => {
 
 app.post("/api/telegram/webhook", async (req, res) => {
   try {
-    const { token, webhookUrl, message, update_id } = req.body;
+    const { token, webhookUrl, update_id } = req.body;
     if (webhookUrl && token) {
       await telegramRequest(token, "setWebhook", { url: webhookUrl });
       return res.json({ message: "Webhook configurado com sucesso." });
     }
 
-    const payloadMessage = message || req.body?.message;
-    if (payloadMessage?.text || update_id) {
-      const expense = parseExpenseFromMessage(payloadMessage?.text || "");
+    const payloadMessage = extractTelegramMessage(req.body);
+    const text = payloadMessage?.text || payloadMessage?.caption || "";
+    if (text || update_id) {
+      const expense = parseExpenseFromMessage(text);
       const replyToken = process.env.BOT_TOKEN;
       if (expense) {
         expenses.unshift(expense);
         if (replyToken && payloadMessage?.chat?.id) {
           await telegramRequest(replyToken, "sendMessage", {
             chat_id: payloadMessage.chat.id,
-            text: `✅ Gasto registrado: ${expense.description} (${expense.amount.toFixed(
-              2
-            )})`,
+            text: `✅ Gasto registrado: ${expense.description} ${formatCurrency(
+              expense.amount
+            )}`,
           });
         }
         return res.json({ status: "ok", stored: true });
