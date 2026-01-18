@@ -391,6 +391,7 @@ const initBotActions = () => {
   const tokenInput = document.getElementById("botToken");
   const chatInput = document.getElementById("botChatId");
   const webhookInput = document.getElementById("botWebhookUrl");
+  const syncStatus = document.getElementById("botSyncStatus");
 
   const getConfig = () => ({
     apiUrl: apiUrlInput?.value?.trim() || "http://localhost:3000",
@@ -435,6 +436,10 @@ const initBotActions = () => {
   const syncExpenses = async (showFeedback = false) => {
     const result = await request("/api/expenses");
     const added = mergeBotExpenses(result.expenses || []);
+    if (syncStatus) {
+      const total = result.expenses?.length || 0;
+      syncStatus.textContent = `Sincronizado: ${total} gasto(s) no bot, ${added || 0} novos.`;
+    }
     if (showFeedback) {
       showToast(
         added ? `${added} gasto(s) sincronizado(s).` : "Nenhum gasto novo."
@@ -491,6 +496,7 @@ const initBotActions = () => {
     const silentSync = () => syncExpenses(false).catch(() => {});
     apiUrlInput.addEventListener("change", silentSync);
     silentSync();
+    setInterval(silentSync, 10000);
   }
 };
 
