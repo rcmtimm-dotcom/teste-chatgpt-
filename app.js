@@ -53,6 +53,7 @@ const calendarEvents = [
 const state = {
   transactions:
     JSON.parse(localStorage.getItem("transactions")) || initialTransactions,
+  botSyncedIds: JSON.parse(localStorage.getItem("botSyncedIds")) || [],
   filters: {
     search: "",
     category: "",
@@ -89,6 +90,10 @@ const elements = {
 
 const saveTransactions = () => {
   localStorage.setItem("transactions", JSON.stringify(state.transactions));
+};
+
+const saveBotSyncedIds = () => {
+  localStorage.setItem("botSyncedIds", JSON.stringify(state.botSyncedIds));
 };
 
 const renderGoals = () => {
@@ -407,6 +412,36 @@ const initBotActions = () => {
     return payload;
   };
 
+  const mergeBotExpenses = (items = []) => {
+    if (!Array.isArray(items)) return;
+    const existingIds = new Set(state.botSyncedIds);
+    let added = 0;
+    items.forEach((item) => {
+      if (!item || existingIds.has(item.id)) return;
+      existingIds.add(item.id);
+      state.transactions.unshift(item);
+      added += 1;
+    });
+    if (added > 0) {
+      state.botSyncedIds = Array.from(existingIds);
+      saveBotSyncedIds();
+      saveTransactions();
+      renderTransactions();
+      renderSummary();
+    }
+    return added;
+  };
+
+  const syncExpenses = async (showFeedback = false) => {
+    const result = await request("/api/expenses");
+    const added = mergeBotExpenses(result.expenses || []);
+    if (showFeedback) {
+      showToast(
+        added ? `${added} gasto(s) sincronizado(s).` : "Nenhum gasto novo."
+      );
+    }
+  };
+
   const actionMap = {
     "test-connection": async () => request("/api/telegram/health"),
     webhook: async () => {
@@ -427,6 +462,10 @@ const initBotActions = () => {
         body: JSON.stringify({ token, chatId, message: "Teste do Controle de Gastos" }),
       });
     },
+    "sync-expenses": async () => {
+      await syncExpenses(true);
+      return { skipToast: true };
+    },
   };
 
   document.querySelectorAll("[data-bot-action]").forEach((button) => {
@@ -439,12 +478,20 @@ const initBotActions = () => {
         }
         showToast("Processando...");
         const result = await actionMap[action]();
-        showToast(result.message || "Ação concluída.");
+        if (!result?.skipToast) {
+          showToast(result?.message || "Ação concluída.");
+        }
       } catch (error) {
         showToast(error.message || "Falha ao executar a ação.");
       }
     });
   });
+
+  if (apiUrlInput) {
+    const silentSync = () => syncExpenses(false).catch(() => {});
+    apiUrlInput.addEventListener("change", silentSync);
+    silentSync();
+  }
 };
 
 const initUserActions = () => {

@@ -496,22 +496,30 @@
             </label>
             <label>
               URL do Webhook
-              <input type="text" id="botWebhookUrl" value="https://seu-dominio.com/webhook" />
+              <input type="text" id="botWebhookUrl" value="https://seu-dominio.com/api/telegram/webhook" />
             </label>
-            <p class="muted">Fale com @BotFather no Telegram e gere um token.</p>
+            <p class="muted">
+              Fale com @BotFather no Telegram e gere um token. Após enviar mensagens para o bot,
+              clique em "Sincronizar gastos do bot" para carregar os lançamentos na lista.
+            </p>
             <div class="inline-actions">
               <button class="primary" data-bot-action="webhook">Configurar Webhook</button>
               <button class="secondary" data-bot-action="diagnose">Diagnosticar</button>
               <button class="secondary" data-bot-action="test">Testar</button>
+              <button class="secondary" data-bot-action="sync-expenses">Sincronizar gastos do bot</button>
             </div>
             <div class="status success">✅ Vinculado automaticamente! Chat ID: 8293872436</div>
           </div>
           <div class="info-card">
             <h3>Comandos do Bot</h3>
             <pre>
-Registrar gastos:
+Registrar gastos (envie no Telegram):
 50 mercado -> compartilhado
-80 restaurante -> individual (roberto)
+80 restaurante -> individual
+120 uber -> individual
+
+Formato esperado:
+valor descrição -> compartilhado | individual
 
 Consultas:
 /resumo - Ver resumo do mês
