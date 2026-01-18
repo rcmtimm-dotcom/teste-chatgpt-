@@ -378,23 +378,29 @@
           <h3>Gerenciar Usuários</h3>
           <p class="muted">Convide pessoas para acessar o sistema</p>
           <div class="inline-field">
-            <input type="email" placeholder="email@exemplo.com" />
-            <button class="primary">Convidar</button>
+            <input type="email" id="inviteEmail" placeholder="email@exemplo.com" />
+            <button class="primary" id="inviteUser">Convidar</button>
           </div>
-          <div class="user-list">
+          <div class="user-list" id="userList">
             <div class="user-item">
               <div>
                 <strong>Alice Rosa Tuchtenhagen</strong>
                 <p class="muted">psialicerosa@gmail.com</p>
               </div>
-              <span class="pill">Usuário</span>
+              <div class="user-actions">
+                <span class="pill">Usuário</span>
+                <button class="text-button danger" data-user-action="remove">Excluir</button>
+              </div>
             </div>
             <div class="user-item">
               <div>
                 <strong>Roberto Timm</strong>
                 <p class="muted">rctimm@gmail.com</p>
               </div>
-              <span class="pill active">Administrador</span>
+              <div class="user-actions">
+                <span class="pill active">Administrador</span>
+                <button class="text-button danger" data-user-action="remove">Excluir</button>
+              </div>
             </div>
           </div>
         </section>
@@ -464,7 +470,7 @@
             <h2>Integração com Telegram</h2>
             <p>Conecte o bot e receba alertas automáticos</p>
           </div>
-          <button class="primary">🧪 Testar Conexão</button>
+          <button class="primary" data-bot-action="test-connection">🧪 Testar Conexão</button>
         </header>
         <section class="panel">
           <div class="toggle-row">
@@ -477,14 +483,26 @@
           <div class="info-card accent">
             <h3>Configuração do Bot</h3>
             <label>
+              URL do servidor local
+              <input type="text" id="botApiUrl" value="http://localhost:3000" />
+            </label>
+            <label>
               Token do Bot
-              <input type="text" value="7987750191:AAH8TbybvSpIvi_jPBS9LeipMX9kZ8Qcww" />
+              <input type="text" id="botToken" value="COLE_SEU_TOKEN_AQUI" />
+            </label>
+            <label>
+              Chat ID
+              <input type="text" id="botChatId" value="COLE_SEU_CHAT_ID" />
+            </label>
+            <label>
+              URL do Webhook
+              <input type="text" id="botWebhookUrl" value="https://seu-dominio.com/webhook" />
             </label>
             <p class="muted">Fale com @BotFather no Telegram e gere um token.</p>
             <div class="inline-actions">
-              <button class="primary">Configurar Webhook</button>
-              <button class="secondary">Diagnosticar</button>
-              <button class="secondary">Testar</button>
+              <button class="primary" data-bot-action="webhook">Configurar Webhook</button>
+              <button class="secondary" data-bot-action="diagnose">Diagnosticar</button>
+              <button class="secondary" data-bot-action="test">Testar</button>
             </div>
             <div class="status success">✅ Vinculado automaticamente! Chat ID: 8293872436</div>
           </div>
