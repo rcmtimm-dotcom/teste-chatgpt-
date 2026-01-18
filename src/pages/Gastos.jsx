@@ -3,16 +3,32 @@ import { useAuth } from "../context/AuthContext";
 
 const getApiUrl = () => import.meta.env.VITE_API_URL;
 
+const defaultUsers = ["Eu", "Namorada"];
+
+const loadUsers = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem("users") || "null");
+    if (Array.isArray(stored) && stored.length === 2) {
+      return stored;
+    }
+  } catch {
+    return defaultUsers;
+  }
+  return defaultUsers;
+};
+
 const Gastos = () => {
   const { session, signOut } = useAuth();
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState(loadUsers);
   const [form, setForm] = useState({
     description: "",
     amount: "",
     category: "Manual",
     type: "shared",
+    owner: defaultUsers[0],
   });
 
   const authHeader = useMemo(
@@ -73,12 +89,31 @@ const Gastos = () => {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message || "Falha ao registrar gasto.");
       }
-      setForm({ description: "", amount: "", category: "Manual", type: "shared" });
+      setForm({
+        description: "",
+        amount: "",
+        category: "Manual",
+        type: "shared",
+        owner: users[0],
+      });
       await fetchExpenses();
     } catch (error) {
       setStatus(error.message);
     }
   };
+
+  const handleUserChange = (index, value) => {
+    const next = [...users];
+    next[index] = value;
+    setUsers(next);
+    localStorage.setItem("users", JSON.stringify(next));
+    setForm((prev) => ({
+      ...prev,
+      owner: prev.owner === users[index] ? value : prev.owner,
+    }));
+  };
+
+  const splitValue = Number(form.amount || 0) / 2;
 
   return (
     <div className="page">
@@ -138,6 +173,35 @@ const Gastos = () => {
                 <option value="individual">Individual</option>
               </select>
             </label>
+            {form.type === "individual" && (
+              <>
+                <label>
+                  Responsável
+                  <select
+                    value={form.owner}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, owner: event.target.value }))
+                    }
+                  >
+                    {users.map((user) => (
+                      <option key={user} value={user}>
+                        {user}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="split">
+                  <div>
+                    <strong>{users[0]}</strong>
+                    <span>R$ {splitValue.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <strong>{users[1]}</strong>
+                    <span>R$ {splitValue.toFixed(2)}</span>
+                  </div>
+                </div>
+              </>
+            )}
             <button type="submit">Registrar gasto</button>
           </form>
         </div>
@@ -154,12 +218,34 @@ const Gastos = () => {
                   <strong>{item.description}</strong>
                   <span className="muted">
                     {item.category} • {item.type === "shared" ? "Compartilhado" : "Individual"}
+                    {item.owner ? ` • ${item.owner}` : ""}
                   </span>
                 </div>
                 <span>R$ {Number(item.amount).toFixed(2)}</span>
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="card">
+          <h2>Usuários</h2>
+          <p>Edite os nomes usados na divisão do gasto individual.</p>
+          <div className="form">
+            <label>
+              Pessoa 1
+              <input
+                value={users[0]}
+                onChange={(event) => handleUserChange(0, event.target.value)}
+              />
+            </label>
+            <label>
+              Pessoa 2
+              <input
+                value={users[1]}
+                onChange={(event) => handleUserChange(1, event.target.value)}
+              />
+            </label>
+          </div>
         </div>
       </div>
     </div>

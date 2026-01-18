@@ -239,7 +239,7 @@ app.get("/api/expenses", requireAuth, (req, res) => {
 });
 
 app.post("/api/expenses", requireAuth, (req, res) => {
-  const { description, category, amount, type, date } = req.body || {};
+  const { description, category, amount, type, date, owner } = req.body || {};
   const normalizedAmount = normalizeAmount(amount);
   if (!description || !normalizedAmount) {
     return res.status(400).json({ message: "Descrição e valor são obrigatórios." });
@@ -251,6 +251,7 @@ app.post("/api/expenses", requireAuth, (req, res) => {
     amount: normalizedAmount,
     type: type || "shared",
     date: date || new Date().toISOString().slice(0, 10),
+    owner: owner || "",
     source: "manual",
   };
   expenses.unshift(expense);

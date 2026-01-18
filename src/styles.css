@@ -102,6 +102,21 @@ button:disabled {
   border-radius: 12px;
 }
 
+.split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.split div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .muted {
   display: block;
   color: #64748b;
