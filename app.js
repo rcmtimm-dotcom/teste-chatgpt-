@@ -393,12 +393,33 @@ const initBotActions = () => {
   const webhookInput = document.getElementById("botWebhookUrl");
   const syncStatus = document.getElementById("botSyncStatus");
 
+  const loadBotConfig = () =>
+    JSON.parse(localStorage.getItem("botConfig") || "{}");
+
+  const saveBotConfig = (config) => {
+    localStorage.setItem("botConfig", JSON.stringify(config));
+  };
+
+  const applyConfigToInputs = (config) => {
+    if (apiUrlInput && config.apiUrl) apiUrlInput.value = config.apiUrl;
+    if (tokenInput && config.token) tokenInput.value = config.token;
+    if (chatInput && config.chatId) chatInput.value = config.chatId;
+    if (webhookInput && config.webhookUrl) webhookInput.value = config.webhookUrl;
+  };
+
+  applyConfigToInputs(loadBotConfig());
+
   const getConfig = () => ({
     apiUrl: apiUrlInput?.value?.trim() || "http://localhost:3000",
     token: tokenInput?.value?.trim() || "",
     chatId: chatInput?.value?.trim() || "",
     webhookUrl: webhookInput?.value?.trim() || "",
   });
+
+  const persistConfig = () => {
+    const config = getConfig();
+    saveBotConfig(config);
+  };
 
   const request = async (path, options = {}) => {
     const { apiUrl } = getConfig();
@@ -498,6 +519,11 @@ const initBotActions = () => {
     silentSync();
     setInterval(silentSync, 10000);
   }
+
+  [apiUrlInput, tokenInput, chatInput, webhookInput].forEach((input) => {
+    if (!input) return;
+    input.addEventListener("input", persistConfig);
+  });
 };
 
 const initUserActions = () => {
