@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Controle de Gastos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon">⏱</div>
+          <div>
+            <h1>Controle de Gastos</h1>
+            <p>Gerencie suas finanças domésticas</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="chip" id="monthSelector">Janeiro de 2026</button>
+          <button class="icon-button" title="Configurações">⚙️</button>
+          <button class="icon-button" id="toggleTheme" title="Alternar tema">🌙</button>
+        </div>
+      </header>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <div>
+            <span>Receitas</span>
+            <h2 id="incomeValue">R$ 0,00</h2>
+            <small class="muted">Última atualização hoje</small>
+          </div>
+          <div class="stat-icon success">📈</div>
+        </article>
+        <article class="stat-card">
+          <div>
+            <span>Gastos Totais</span>
+            <h2 id="expenseValue">R$ 0,00</h2>
+            <small id="expenseTrend" class="danger">0% da receita</small>
+          </div>
+          <div class="stat-icon danger">⏺</div>
+        </article>
+        <article class="stat-card">
+          <div>
+            <span>Saldo</span>
+            <h2 id="balanceValue">R$ 0,00</h2>
+            <small class="muted">Atualizado automaticamente</small>
+          </div>
+          <div class="stat-icon warning">🧾</div>
+        </article>
+      </section>
+
+      <section class="actions-row">
+        <button class="primary" id="openModal">＋ Novo Gasto</button>
+        <button class="secondary" id="exportCsv">⬇ Exportar CSV</button>
+        <button class="secondary" id="openReports">📊 Relatórios</button>
+        <button class="secondary" id="openBot">💬 Configurar Bot</button>
+      </section>
+
+      <section class="search-row">
+        <label class="search">
+          🔍
+          <input type="text" id="searchInput" placeholder="Buscar por descrição..." />
+        </label>
+        <button class="secondary" id="toggleFilters">⚗️ Filtros</button>
+      </section>
+
+      <section class="tabs">
+        <button class="tab active" data-tab="geral">Visão Geral</button>
+        <button class="tab" data-tab="categoria">Por Categoria</button>
+        <button class="tab" data-tab="usuario">Por Usuário</button>
+        <button class="tab" data-tab="metas">Metas & Previsões</button>
+      </section>
+
+      <section class="content-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Evolução Mensal - Receitas vs Gastos</h3>
+              <p>01 de janeiro - 31 de janeiro 2026</p>
+            </div>
+            <select id="rangeSelect">
+              <option>Mensal</option>
+              <option>Trimestral</option>
+              <option>Anual</option>
+            </select>
+          </div>
+          <div class="chart">
+            <div class="chart-grid">
+              <span>R$ 100</span>
+              <span>R$ 75</span>
+              <span>R$ 50</span>
+              <span>R$ 25</span>
+              <span>R$ 0</span>
+            </div>
+            <div class="chart-line income"></div>
+            <div class="chart-line expense"></div>
+            <div class="chart-dot income" style="left: 40%; bottom: 15%"></div>
+            <div class="chart-dot expense" style="left: 40%; bottom: 75%"></div>
+          </div>
+          <div class="legend">
+            <span><i class="legend-dot income"></i> Receitas</span>
+            <span><i class="legend-dot expense"></i> Gastos</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Gastos Recentes</h3>
+              <p>Gerencie suas transações</p>
+            </div>
+            <div class="inline-filters">
+              <select id="categoryFilter">
+                <option value="">Todas categorias</option>
+                <option value="Alimentação">Alimentação</option>
+                <option value="Transporte">Transporte</option>
+                <option value="Casa">Casa</option>
+                <option value="Saúde">Saúde</option>
+              </select>
+              <select id="sortFilter">
+                <option value="desc">Data</option>
+                <option value="asc">Data (asc)</option>
+              </select>
+            </div>
+          </div>
+          <div class="transactions" id="transactionList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Distribuição de Gastos</h3>
+              <p>Compartilhados vs Individuais</p>
+            </div>
+          </div>
+          <div class="progress-group">
+            <div class="progress-item">
+              <div>
+                <strong>Gastos Compartilhados</strong>
+                <small class="muted">Até hoje</small>
+              </div>
+              <span id="sharedValue">R$ 0,00</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="sharedBar"></div>
+            </div>
+            <div class="progress-item">
+              <div>
+                <strong>Gastos Individuais</strong>
+                <small class="muted">Até hoje</small>
+              </div>
+              <span id="individualValue">R$ 0,00</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill orange" id="individualBar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-header">
+            <div>
+              <h3>Metas & Alertas</h3>
+              <p>Automatize limites de gastos por categoria</p>
+            </div>
+            <button class="secondary" id="addGoal">➕ Nova Meta</button>
+          </div>
+          <div class="goals" id="goalList"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal" id="expenseModal">
+      <div class="modal-content">
+        <header>
+          <h3>Novo Lançamento</h3>
+          <button class="icon-button" id="closeModal">✖</button>
+        </header>
+        <form id="expenseForm">
+          <label>
+            Descrição
+            <input type="text" name="description" required />
+          </label>
+          <label>
+            Valor (R$)
+            <input type="number" name="amount" step="0.01" required />
+          </label>
+          <label>
+            Categoria
+            <select name="category" required>
+              <option>Alimentação</option>
+              <option>Transporte</option>
+              <option>Casa</option>
+              <option>Lazer</option>
+              <option>Saúde</option>
+            </select>
+          </label>
+          <label>
+            Tipo
+            <select name="type">
+              <option value="shared">Compartilhado</option>
+              <option value="individual">Individual</option>
+            </select>
+          </label>
+          <label>
+            Data
+            <input type="date" name="date" required />
+          </label>
+          <div class="modal-actions">
+            <button type="button" class="secondary" id="clearForm">Limpar</button>
+            <button type="submit" class="primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">Exportação concluída!</div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
