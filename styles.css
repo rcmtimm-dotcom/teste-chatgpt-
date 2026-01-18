@@ -718,6 +718,10 @@ input[type="number"] {
   min-width: 200px;
 }
 
+.inline-field button {
+  white-space: nowrap;
+}
+
 .user-list,
 .category-list {
   display: grid;
@@ -733,6 +737,24 @@ input[type="number"] {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--bg);
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.text-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.text-button.danger {
+  color: var(--danger);
 }
 
 .pill {
