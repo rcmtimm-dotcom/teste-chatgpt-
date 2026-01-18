@@ -392,6 +392,7 @@ const initBotActions = () => {
   const chatInput = document.getElementById("botChatId");
   const webhookInput = document.getElementById("botWebhookUrl");
   const syncStatus = document.getElementById("botSyncStatus");
+  const webhookStatus = document.getElementById("botWebhookStatus");
 
   const loadBotConfig = () =>
     JSON.parse(localStorage.getItem("botConfig") || "{}");
@@ -468,6 +469,18 @@ const initBotActions = () => {
     }
   };
 
+  const syncWebhookStatus = async () => {
+    if (!webhookStatus) return;
+    const result = await request("/api/telegram/updates");
+    const latest = result.events?.[0];
+    if (!latest) {
+      webhookStatus.textContent = "Aguardando webhook...";
+      return;
+    }
+    const storedLabel = latest.stored ? "registrado" : "ignorado";
+    webhookStatus.textContent = `Último webhook: ${latest.at} • ${storedLabel} • ${latest.text}`;
+  };
+
   const actionMap = {
     "test-connection": async () => request("/api/telegram/health"),
     webhook: async () => {
@@ -492,6 +505,10 @@ const initBotActions = () => {
       await syncExpenses(true);
       return { skipToast: true };
     },
+    "sync-webhook": async () => {
+      await syncWebhookStatus();
+      return { skipToast: true };
+    },
   };
 
   document.querySelectorAll("[data-bot-action]").forEach((button) => {
@@ -514,7 +531,10 @@ const initBotActions = () => {
   });
 
   if (apiUrlInput) {
-    const silentSync = () => syncExpenses(false).catch(() => {});
+    const silentSync = () => {
+      syncExpenses(false).catch(() => {});
+      syncWebhookStatus().catch(() => {});
+    };
     apiUrlInput.addEventListener("change", silentSync);
     silentSync();
     setInterval(silentSync, 10000);

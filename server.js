@@ -6,6 +6,7 @@ app.use(cors());
 app.use(express.json());
 
 const expenses = [];
+const webhookEvents = [];
 
 const normalizeAmount = (rawAmount) => {
   if (!rawAmount) return null;
@@ -60,6 +61,18 @@ const formatCurrency = (amount) =>
     currency: "BRL",
   });
 
+const recordWebhookEvent = (payloadMessage, stored) => {
+  webhookEvents.unshift({
+    at: new Date().toISOString(),
+    text: payloadMessage?.text || payloadMessage?.caption || "",
+    chatId: payloadMessage?.chat?.id || null,
+    stored,
+  });
+  if (webhookEvents.length > 20) {
+    webhookEvents.length = 20;
+  }
+};
+
 const telegramRequest = async (token, method, body) => {
   if (!token) {
     throw new Error("Token do bot não informado.");
@@ -95,6 +108,7 @@ app.post("/api/telegram/webhook", async (req, res) => {
       const replyToken = process.env.BOT_TOKEN;
       if (expense) {
         expenses.unshift(expense);
+        recordWebhookEvent(payloadMessage, true);
         if (replyToken && payloadMessage?.chat?.id) {
           await telegramRequest(replyToken, "sendMessage", {
             chat_id: payloadMessage.chat.id,
@@ -105,6 +119,7 @@ app.post("/api/telegram/webhook", async (req, res) => {
         }
         return res.json({ status: "ok", stored: true });
       }
+      recordWebhookEvent(payloadMessage, false);
       if (replyToken && payloadMessage?.chat?.id) {
         await telegramRequest(replyToken, "sendMessage", {
           chat_id: payloadMessage.chat.id,
@@ -145,6 +160,10 @@ app.post("/api/telegram/test-message", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
+});
+
+app.get("/api/telegram/updates", (req, res) => {
+  res.json({ events: webhookEvents });
 });
 
 app.get("/api/expenses", (req, res) => {
