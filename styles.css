@@ -797,6 +797,11 @@ input[type="number"] {
   font-weight: 600;
 }
 
+.status.info {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
 .toggle-row {
   display: flex;
   justify-content: space-between;
