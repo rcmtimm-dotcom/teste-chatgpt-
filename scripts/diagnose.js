@@ -2,8 +2,9 @@ import fs from "node:fs/promises";
 import { run as runWebhookCheck } from "./telegram_webhook_check.js";
 import { run as runBackendSmoke } from "./smoke_backend.js";
 import { run as runFrontendConfig } from "./check_frontend_config.js";
+import { run as runAuthSmoke } from "./smoke_auth.js";
 
-const buildReport = ({ webhookCheck, backendSmoke, frontendConfig }) => {
+const buildReport = ({ webhookCheck, backendSmoke, frontendConfig, authSmoke }) => {
   const lines = [];
   lines.push("# Diagnose Report");
   lines.push("");
@@ -46,6 +47,12 @@ const buildReport = ({ webhookCheck, backendSmoke, frontendConfig }) => {
   lines.push("### Frontend Config Scan");
   lines.push("```json");
   lines.push(JSON.stringify(frontendConfig, null, 2));
+  lines.push("```");
+  lines.push("");
+
+  lines.push("### Auth Smoke");
+  lines.push("```json");
+  lines.push(JSON.stringify(authSmoke, null, 2));
   lines.push("```");
   lines.push("");
 
@@ -112,15 +119,16 @@ const buildReport = ({ webhookCheck, backendSmoke, frontendConfig }) => {
 };
 
 const run = async () => {
-  const [webhookCheck, backendSmoke, frontendConfig] = await Promise.all([
+  const [webhookCheck, backendSmoke, frontendConfig, authSmoke] = await Promise.all([
     runWebhookCheck(),
     runBackendSmoke(),
     runFrontendConfig(),
+    runAuthSmoke(),
   ]);
 
-  const report = buildReport({ webhookCheck, backendSmoke, frontendConfig });
+  const report = buildReport({ webhookCheck, backendSmoke, frontendConfig, authSmoke });
   await fs.writeFile("diagnose_report.md", report);
-  return { webhookCheck, backendSmoke, frontendConfig };
+  return { webhookCheck, backendSmoke, frontendConfig, authSmoke };
 };
 
 run()

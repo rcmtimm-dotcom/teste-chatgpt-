@@ -19,7 +19,7 @@ const run = async () => {
     notes: [],
   };
 
-  const filesToScan = ["index.html", "app.js"];
+  const filesToScan = ["index.html", "src/App.jsx", "src/pages/Gastos.jsx"];
   await Promise.all(
     filesToScan.map(async (file) => {
       const matches = await scanFile(file, patterns);

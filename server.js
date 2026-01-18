@@ -1,8 +1,31 @@
 import express from "express";
 import cors from "cors";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins = (process.env.FRONTEND_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 const expenses = [];
@@ -60,6 +83,39 @@ const formatCurrency = (amount) =>
     style: "currency",
     currency: "BRL",
   });
+
+const getIssuer = () => {
+  if (process.env.SUPABASE_ISSUER) return process.env.SUPABASE_ISSUER;
+  if (process.env.SUPABASE_URL) {
+    return `${process.env.SUPABASE_URL}/auth/v1`;
+  }
+  return "";
+};
+
+const jwksUrl = process.env.SUPABASE_JWKS_URL
+  ? new URL(process.env.SUPABASE_JWKS_URL)
+  : null;
+
+const jwks = jwksUrl ? createRemoteJWKSet(jwksUrl) : null;
+
+const requireAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      return res.status(401).json({ message: "Token ausente." });
+    }
+    if (!jwks) {
+      return res.status(500).json({ message: "JWKS não configurado." });
+    }
+    const issuer = getIssuer();
+    const audience = process.env.SUPABASE_AUDIENCE || "authenticated";
+    await jwtVerify(token, jwks, { issuer, audience });
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token inválido." });
+  }
+};
 
 const recordWebhookEvent = (payloadMessage, stored) => {
   webhookEvents.unshift({
@@ -178,11 +234,11 @@ app.get("/debug/last-expenses", (req, res) => {
   return res.json({ expenses: expenses.slice(0, 5) });
 });
 
-app.get("/api/expenses", (req, res) => {
+app.get("/api/expenses", requireAuth, (req, res) => {
   res.json({ expenses });
 });
 
-app.post("/api/expenses", (req, res) => {
+app.post("/api/expenses", requireAuth, (req, res) => {
   const { description, category, amount, type, date } = req.body || {};
   const normalizedAmount = normalizeAmount(amount);
   if (!description || !normalizedAmount) {

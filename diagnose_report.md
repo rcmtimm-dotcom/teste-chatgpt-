@@ -37,14 +37,28 @@
 ```json
 {
   "files": {
-    "index.html": [
-      "localhost"
-    ],
-    "app.js": [
-      "localhost"
-    ]
+    "index.html": [],
+    "src/App.jsx": [],
+    "src/pages/Gastos.jsx": []
   },
-  "notes": []
+  "notes": [
+    "Nenhuma referência a localhost encontrada."
+  ]
+}
+```
+
+### Auth Smoke
+```json
+{
+  "baseUrl": "http://localhost:3000",
+  "noAuth": null,
+  "withAuth": null,
+  "errors": [
+    "Sem token falhou: fetch failed"
+  ],
+  "notes": [
+    "TEST_JWT não informado; validação com token não executada."
+  ]
 }
 ```
 
@@ -53,7 +67,7 @@
 - **O Telegram está enviando updates para o Render?** NÃO (webhook não configurado).
 - **O endpoint do webhook existe e responde 200?** NÃO (health falhou).
 - **O insert no banco está acontecendo?** NÃO (debug endpoint falhou).
-- **O front está buscando do endpoint correto?** NÃO (referências a localhost encontradas).
+- **O front está buscando do endpoint correto?** SIM (nenhuma referência a localhost detectada no código).
 - **Há bloqueio de CORS?** INCONCLUSIVO.
 
 ## Correções aplicadas
