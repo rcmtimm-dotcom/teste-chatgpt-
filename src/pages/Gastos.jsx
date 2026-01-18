@@ -4,6 +4,10 @@ import { useAuth } from "../context/AuthContext";
 const getApiUrl = () => import.meta.env.VITE_API_URL;
 
 const defaultUsers = ["Eu", "Namorada"];
+const defaultBudgets = [
+  { id: "alimentacao", name: "Alimentação", limit: 800 },
+  { id: "transporte", name: "Transporte", limit: 400 },
+];
 
 const loadUsers = () => {
   try {
@@ -23,6 +27,17 @@ const Gastos = () => {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState(loadUsers);
+  const [budgets, setBudgets] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("budgets") || "null");
+      if (Array.isArray(stored) && stored.length) {
+        return stored;
+      }
+    } catch {
+      return defaultBudgets;
+    }
+    return defaultBudgets;
+  });
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -112,6 +127,53 @@ const Gastos = () => {
       owner: prev.owner === users[index] ? value : prev.owner,
     }));
   };
+
+  const updateBudgets = (next) => {
+    setBudgets(next);
+    localStorage.setItem("budgets", JSON.stringify(next));
+  };
+
+  const handleBudgetChange = (id, field, value) => {
+    const next = budgets.map((budget) =>
+      budget.id === id ? { ...budget, [field]: value } : budget
+    );
+    updateBudgets(next);
+  };
+
+  const addBudget = () => {
+    const next = [
+      ...budgets,
+      { id: `${Date.now()}`, name: "Nova categoria", limit: 0 },
+    ];
+    updateBudgets(next);
+  };
+
+  const removeBudget = (id) => {
+    const next = budgets.filter((budget) => budget.id !== id);
+    updateBudgets(next);
+  };
+
+  const spentByCategory = budgets.reduce((acc, budget) => {
+    acc[budget.name] = items
+      .filter((item) => item.category === budget.name)
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return acc;
+  }, {});
+
+  const monthlyTotals = useMemo(() => {
+    const totals = {};
+    items.forEach((item) => {
+      const date = item.date ? new Date(item.date) : new Date();
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      totals[key] = (totals[key] || 0) + Number(item.amount || 0);
+    });
+    return Object.entries(totals)
+      .sort(([a], [b]) => (a > b ? 1 : -1))
+      .slice(-6);
+  }, [items]);
+
+  const maxMonthTotal =
+    monthlyTotals.reduce((max, [, value]) => Math.max(max, value), 0) || 1;
 
   const splitValue = Number(form.amount || 0) / 2;
 
@@ -204,6 +266,70 @@ const Gastos = () => {
             )}
             <button type="submit">Registrar gasto</button>
           </form>
+        </div>
+
+        <div className="card">
+          <h2>Orçamentos editáveis</h2>
+          <p>Atualize os limites e veja o quanto já foi usado.</p>
+          <div className="form">
+            {budgets.map((budget) => {
+              const spent = spentByCategory[budget.name] || 0;
+              const percent = Math.min((spent / (Number(budget.limit) || 1)) * 100, 100);
+              return (
+                <div key={budget.id} className="budget-row">
+                  <input
+                    value={budget.name}
+                    onChange={(event) =>
+                      handleBudgetChange(budget.id, "name", event.target.value)
+                    }
+                  />
+                  <input
+                    type="number"
+                    value={budget.limit}
+                    onChange={(event) =>
+                      handleBudgetChange(budget.id, "limit", Number(event.target.value))
+                    }
+                  />
+                  <div className="budget-progress">
+                    <div className="budget-fill" style={{ width: `${percent}%` }} />
+                  </div>
+                  <span className="muted">
+                    R$ {spent.toFixed(2)} / R$ {Number(budget.limit).toFixed(2)}
+                  </span>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => removeBudget(budget.id)}
+                  >
+                    Remover
+                  </button>
+                </div>
+              );
+            })}
+            <button type="button" onClick={addBudget}>
+              Adicionar orçamento
+            </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>Comparação mensal</h2>
+          <p>O gráfico agora atualiza com base nos lançamentos.</p>
+          <div className="chart">
+            {monthlyTotals.map(([label, value]) => (
+              <div key={label} className="chart-bar">
+                <span className="muted">{label}</span>
+                <div className="chart-track">
+                  <div
+                    className="chart-fill"
+                    style={{ width: `${(value / maxMonthTotal) * 100}%` }}
+                  />
+                </div>
+                <strong>R$ {value.toFixed(2)}</strong>
+              </div>
+            ))}
+            {!monthlyTotals.length && <p>Nenhum dado para comparar.</p>}
+          </div>
         </div>
 
         <div className="card">

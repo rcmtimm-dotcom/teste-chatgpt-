@@ -117,6 +117,47 @@ button:disabled {
   gap: 6px;
 }
 
+.budget-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 140px 1fr;
+  align-items: center;
+}
+
+.budget-progress {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.budget-fill {
+  height: 100%;
+  background: #22c55e;
+}
+
+.chart {
+  display: grid;
+  gap: 12px;
+}
+
+.chart-bar {
+  display: grid;
+  gap: 6px;
+}
+
+.chart-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  height: 12px;
+}
+
+.chart-fill {
+  height: 100%;
+  background: #2563eb;
+}
+
 .muted {
   display: block;
   color: #64748b;
