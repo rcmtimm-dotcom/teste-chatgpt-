@@ -83,3 +83,38 @@ npm run diagnose
 
 ## Scripts úteis
 - `npm run diagnose` → gera `diagnose_report.md`.
+
+---
+
+## Troubleshooting: erro 403 ao instalar dependências
+Se `npm install` falhar com **403 Forbidden** (ex: `@supabase/supabase-js`):
+
+1) Garanta que o registry está correto:
+```bash
+npm config set registry https://registry.npmjs.org/
+```
+
+2) Limpe o cache:
+```bash
+npm cache clean --force
+```
+
+3) Se houver proxy configurado, tente desabilitar no projeto:
+```bash
+npm config delete proxy
+npm config delete https-proxy
+```
+
+4) Se ainda assim falhar, confirme se não há variáveis de proxy no ambiente:
+```bash
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy npm_config_http_proxy npm_config_https_proxy
+```
+
+5) Alternativas caso o npm continue falhando:
+```bash
+pnpm install
+# ou
+yarn install
+```
+
+O repositório já inclui `.npmrc` com o registry oficial.
