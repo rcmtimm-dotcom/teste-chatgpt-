@@ -104,11 +104,14 @@ app.post("/api/telegram/webhook", async (req, res) => {
     const payloadMessage = extractTelegramMessage(req.body);
     const text = payloadMessage?.text || payloadMessage?.caption || "";
     if (text || update_id) {
+      console.log("WEBHOOK_HIT");
       const expense = parseExpenseFromMessage(text);
       const replyToken = process.env.BOT_TOKEN;
       if (expense) {
         expenses.unshift(expense);
         recordWebhookEvent(payloadMessage, true);
+        console.log("PARSED_OK");
+        console.log("DB_WRITE_OK");
         if (replyToken && payloadMessage?.chat?.id) {
           await telegramRequest(replyToken, "sendMessage", {
             chat_id: payloadMessage.chat.id,
@@ -120,6 +123,7 @@ app.post("/api/telegram/webhook", async (req, res) => {
         return res.json({ status: "ok", stored: true });
       }
       recordWebhookEvent(payloadMessage, false);
+      console.log("PARSED_FAIL");
       if (replyToken && payloadMessage?.chat?.id) {
         await telegramRequest(replyToken, "sendMessage", {
           chat_id: payloadMessage.chat.id,
@@ -164,6 +168,14 @@ app.post("/api/telegram/test-message", async (req, res) => {
 
 app.get("/api/telegram/updates", (req, res) => {
   res.json({ events: webhookEvents });
+});
+
+app.get("/debug/last-expenses", (req, res) => {
+  const debugKey = process.env.DEBUG_KEY;
+  if (!debugKey || req.query.key !== debugKey) {
+    return res.status(403).json({ message: "Acesso negado." });
+  }
+  return res.json({ expenses: expenses.slice(0, 5) });
 });
 
 app.get("/api/expenses", (req, res) => {
