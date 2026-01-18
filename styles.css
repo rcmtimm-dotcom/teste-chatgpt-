@@ -735,6 +735,24 @@ input[type="number"] {
   background: var(--bg);
 }
 
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.text-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.text-button.danger {
+  color: var(--danger);
+}
+
 .pill {
   padding: 4px 10px;
   border-radius: 999px;

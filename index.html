@@ -381,20 +381,26 @@
             <input type="email" placeholder="email@exemplo.com" />
             <button class="primary">Convidar</button>
           </div>
-          <div class="user-list">
+          <div class="user-list" id="userList">
             <div class="user-item">
               <div>
                 <strong>Alice Rosa Tuchtenhagen</strong>
                 <p class="muted">psialicerosa@gmail.com</p>
               </div>
-              <span class="pill">Usuário</span>
+              <div class="user-actions">
+                <span class="pill">Usuário</span>
+                <button class="text-button danger" data-user-action="remove">Excluir</button>
+              </div>
             </div>
             <div class="user-item">
               <div>
                 <strong>Roberto Timm</strong>
                 <p class="muted">rctimm@gmail.com</p>
               </div>
-              <span class="pill active">Administrador</span>
+              <div class="user-actions">
+                <span class="pill active">Administrador</span>
+                <button class="text-button danger" data-user-action="remove">Excluir</button>
+              </div>
             </div>
           </div>
         </section>
@@ -464,7 +470,7 @@
             <h2>Integração com Telegram</h2>
             <p>Conecte o bot e receba alertas automáticos</p>
           </div>
-          <button class="primary">🧪 Testar Conexão</button>
+          <button class="primary" data-bot-action="test-connection">🧪 Testar Conexão</button>
         </header>
         <section class="panel">
           <div class="toggle-row">
@@ -482,9 +488,9 @@
             </label>
             <p class="muted">Fale com @BotFather no Telegram e gere um token.</p>
             <div class="inline-actions">
-              <button class="primary">Configurar Webhook</button>
-              <button class="secondary">Diagnosticar</button>
-              <button class="secondary">Testar</button>
+              <button class="primary" data-bot-action="webhook">Configurar Webhook</button>
+              <button class="secondary" data-bot-action="diagnose">Diagnosticar</button>
+              <button class="secondary" data-bot-action="test">Testar</button>
             </div>
             <div class="status success">✅ Vinculado automaticamente! Chat ID: 8293872436</div>
           </div>

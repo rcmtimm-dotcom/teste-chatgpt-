@@ -381,6 +381,34 @@ const initThemeToggle = () => {
   });
 };
 
+const initBotActions = () => {
+  document.querySelectorAll("[data-bot-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.botAction;
+      const messages = {
+        webhook: "Webhook configurado localmente (simulado).",
+        diagnose: "Diagnóstico concluído: integração pronta para backend.",
+        test: "Teste enviado para o bot (simulado).",
+        "test-connection": "Conexão testada localmente (simulado).",
+      };
+      showToast(messages[action] || "Ação do bot registrada.");
+    });
+  });
+};
+
+const initUserActions = () => {
+  const userList = document.getElementById("userList");
+  if (!userList) return;
+  userList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-user-action]");
+    if (!button) return;
+    const userItem = button.closest(".user-item");
+    if (!userItem) return;
+    userItem.remove();
+    showToast("Usuário removido.");
+  });
+};
+
 const init = () => {
   renderGoals();
   renderTransactions();
@@ -388,6 +416,8 @@ const init = () => {
   initTabs();
   initViewNavigation();
   initThemeToggle();
+  initBotActions();
+  initUserActions();
   renderComparisonChart();
   renderBudget(elements.budgetChart);
   renderBudget(elements.budgetStandalone);
