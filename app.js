@@ -53,6 +53,7 @@ const calendarEvents = [
 const state = {
   transactions:
     JSON.parse(localStorage.getItem("transactions")) || initialTransactions,
+  botSyncedIds: JSON.parse(localStorage.getItem("botSyncedIds")) || [],
   filters: {
     search: "",
     category: "",
@@ -89,6 +90,10 @@ const elements = {
 
 const saveTransactions = () => {
   localStorage.setItem("transactions", JSON.stringify(state.transactions));
+};
+
+const saveBotSyncedIds = () => {
+  localStorage.setItem("botSyncedIds", JSON.stringify(state.botSyncedIds));
 };
 
 const renderGoals = () => {
@@ -386,6 +391,24 @@ const initBotActions = () => {
   const tokenInput = document.getElementById("botToken");
   const chatInput = document.getElementById("botChatId");
   const webhookInput = document.getElementById("botWebhookUrl");
+  const syncStatus = document.getElementById("botSyncStatus");
+  const webhookStatus = document.getElementById("botWebhookStatus");
+
+  const loadBotConfig = () =>
+    JSON.parse(localStorage.getItem("botConfig") || "{}");
+
+  const saveBotConfig = (config) => {
+    localStorage.setItem("botConfig", JSON.stringify(config));
+  };
+
+  const applyConfigToInputs = (config) => {
+    if (apiUrlInput && config.apiUrl) apiUrlInput.value = config.apiUrl;
+    if (tokenInput && config.token) tokenInput.value = config.token;
+    if (chatInput && config.chatId) chatInput.value = config.chatId;
+    if (webhookInput && config.webhookUrl) webhookInput.value = config.webhookUrl;
+  };
+
+  applyConfigToInputs(loadBotConfig());
 
   const getConfig = () => ({
     apiUrl: apiUrlInput?.value?.trim() || "http://localhost:3000",
@@ -393,6 +416,11 @@ const initBotActions = () => {
     chatId: chatInput?.value?.trim() || "",
     webhookUrl: webhookInput?.value?.trim() || "",
   });
+
+  const persistConfig = () => {
+    const config = getConfig();
+    saveBotConfig(config);
+  };
 
   const request = async (path, options = {}) => {
     const { apiUrl } = getConfig();
@@ -405,6 +433,52 @@ const initBotActions = () => {
       throw new Error(payload.message || "Erro na chamada do servidor.");
     }
     return payload;
+  };
+
+  const mergeBotExpenses = (items = []) => {
+    if (!Array.isArray(items)) return;
+    const existingIds = new Set(state.botSyncedIds);
+    let added = 0;
+    items.forEach((item) => {
+      if (!item || existingIds.has(item.id)) return;
+      existingIds.add(item.id);
+      state.transactions.unshift(item);
+      added += 1;
+    });
+    if (added > 0) {
+      state.botSyncedIds = Array.from(existingIds);
+      saveBotSyncedIds();
+      saveTransactions();
+      renderTransactions();
+      renderSummary();
+    }
+    return added;
+  };
+
+  const syncExpenses = async (showFeedback = false) => {
+    const result = await request("/api/expenses");
+    const added = mergeBotExpenses(result.expenses || []);
+    if (syncStatus) {
+      const total = result.expenses?.length || 0;
+      syncStatus.textContent = `Sincronizado: ${total} gasto(s) no bot, ${added || 0} novos.`;
+    }
+    if (showFeedback) {
+      showToast(
+        added ? `${added} gasto(s) sincronizado(s).` : "Nenhum gasto novo."
+      );
+    }
+  };
+
+  const syncWebhookStatus = async () => {
+    if (!webhookStatus) return;
+    const result = await request("/api/telegram/updates");
+    const latest = result.events?.[0];
+    if (!latest) {
+      webhookStatus.textContent = "Aguardando webhook...";
+      return;
+    }
+    const storedLabel = latest.stored ? "registrado" : "ignorado";
+    webhookStatus.textContent = `Último webhook: ${latest.at} • ${storedLabel} • ${latest.text}`;
   };
 
   const actionMap = {
@@ -427,6 +501,14 @@ const initBotActions = () => {
         body: JSON.stringify({ token, chatId, message: "Teste do Controle de Gastos" }),
       });
     },
+    "sync-expenses": async () => {
+      await syncExpenses(true);
+      return { skipToast: true };
+    },
+    "sync-webhook": async () => {
+      await syncWebhookStatus();
+      return { skipToast: true };
+    },
   };
 
   document.querySelectorAll("[data-bot-action]").forEach((button) => {
@@ -439,11 +521,28 @@ const initBotActions = () => {
         }
         showToast("Processando...");
         const result = await actionMap[action]();
-        showToast(result.message || "Ação concluída.");
+        if (!result?.skipToast) {
+          showToast(result?.message || "Ação concluída.");
+        }
       } catch (error) {
         showToast(error.message || "Falha ao executar a ação.");
       }
     });
+  });
+
+  if (apiUrlInput) {
+    const silentSync = () => {
+      syncExpenses(false).catch(() => {});
+      syncWebhookStatus().catch(() => {});
+    };
+    apiUrlInput.addEventListener("change", silentSync);
+    silentSync();
+    setInterval(silentSync, 10000);
+  }
+
+  [apiUrlInput, tokenInput, chatInput, webhookInput].forEach((input) => {
+    if (!input) return;
+    input.addEventListener("input", persistConfig);
   });
 };
 
